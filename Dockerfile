@@ -1,46 +1,46 @@
 # =======================================================
 # TAHAP 1: BUILDER (Untuk menginstal dependensi dan membangun aset)
-# Kami menggunakan gambar Node.js yang lebih lengkap untuk tahap pembangunan.
 # =======================================================
+# Menggunakan node:20-slim sebagai dasar untuk tahap build
 FROM node:20-slim AS builder
 
 # Tetapkan direktori kerja di dalam kontainer
 WORKDIR /app
 
-# Salin file package.json dan package-lock.json (atau yarn.lock)
+# Salin file package.json dan package-lock.json
 COPY package*.json ./
 
-# Instal dependensi. Kami menggunakan --omit=dev untuk instalasi yang lebih bersih.
-RUN npm install --omit=dev
+# Instal SEMUA dependensi, termasuk devDependencies yang diperlukan untuk build
+# (Menghapus --omit=dev karena vite/typescript diperlukan untuk build)
+RUN npm install
 
 # Salin sisa kode aplikasi
 COPY . .
 
-# Jika Anda memiliki langkah build (misalnya, untuk React/Vue/Angular), tambahkan di sini:
-# RUN npm run build
+# Jalankan skrip build dari package.json (tsc -b && vite build)
+# Ini akan membuat folder /app/dist
+RUN npm run build
 
 # =======================================================
-# TAHAP 2: PRODUCTION (Untuk menjalankan aplikasi)
-# Kami menggunakan gambar dasar yang lebih kecil dan hanya menyertakan yang penting
-# untuk mengurangi ukuran gambar akhir (image size) dan meningkatkan keamanan.
+# TAHAP 2: PRODUCTION (Hanya menyajikan file statis hasil build)
+# Menggunakan Alpine untuk ukuran gambar yang sangat kecil dan aman.
 # =======================================================
-FROM node:20-slim AS production
+FROM node:20-alpine AS production 
 
-# Tetapkan variabel lingkungan untuk mode produksi
-ENV NODE_ENV production
-ENV PORT 8080
+# Instal 'serve' secara global, server web statis yang ringan
+RUN npm install -g serve
 
 # Tetapkan direktori kerja
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Salin HANYA folder node_modules dan file package.json/kode dari tahap builder
-# Ini menghindari penyalinan file build (seperti sumber daya pengembangan atau file mentah)
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app .
+# Salin HANYA folder 'dist' (hasil build) dari tahap builder
+COPY --from=builder /app/dist .
 
-# Buka port yang akan didengarkan oleh aplikasi Anda
-EXPOSE 8080
+# Buka port 3000, agar sesuai dengan docker-compose.yml (3008:3000)
+EXPOSE 3000
 
-# Perintah untuk menjalankan aplikasi saat kontainer dimulai
-# Pastikan titik masuk (entry point) ini sesuai dengan file utama aplikasi Anda
-CMD ["node", "server.js"]
+# Perintah untuk menjalankan 'serve'
+# -s: Mode Single Page Application (SPA) (mengalihkan semua rute ke index.html)
+# .: Sajikan direktori saat ini (yang berisi file 'dist')
+# -l 3000: Dengarkan di port 3000
+CMD ["serve", "-s", ".", "-l", "3000"]
