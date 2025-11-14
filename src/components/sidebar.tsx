@@ -181,6 +181,8 @@ export function Sidebar({
         const isEditing = editingNotebook === notebook.id
         const isDragOver = dragOverItem?.type === "notebook" && dragOverItem.id === notebook.id
         const isThisNotebookDeleting = isDeletingNotebook === notebook.id
+        // FIX: Menggunakan draggedItem untuk mengatasi error TS6133
+        const isBeingDragged = draggedItem?.type === "notebook" && draggedItem.id === notebook.id
 
         return (
             <div key={notebook.id}>
@@ -188,6 +190,8 @@ export function Sidebar({
                     className={cn(
                         "flex items-center group",
                         isDragOver && "bg-blue-100 border-2 border-blue-300 border-dashed rounded",
+                        // FIX: Menambahkan style opacity-50 saat item sedang diseret
+                        isBeingDragged && "opacity-50",
                     )}
                     draggable={!isEditing && !isProcessingMove && !isThisNotebookDeleting} // Disable drag if editing, move, or deleting
                     onDragStart={(e) => handleDragStart(e, "notebook", notebook.id)}
@@ -311,6 +315,8 @@ export function Sidebar({
                         {notebookNotes.map((note) => {
                             const isDragOverNote = dragOverItem?.type === "note" && dragOverItem.id === note.id
                             const isThisNoteDeleting = isDeletingNote === note.id
+                            // FIX: Menggunakan draggedItem untuk mengatasi error TS6133
+                            const isBeingDragged = draggedItem?.type === "note" && draggedItem.id === note.id
 
                             return (
                                 <div
@@ -318,6 +324,8 @@ export function Sidebar({
                                     className={cn(
                                         "flex items-center group",
                                         isDragOverNote && "bg-blue-100 border-2 border-blue-300 border-dashed rounded",
+                                        // FIX: Menambahkan style opacity-50 saat item sedang diseret
+                                        isBeingDragged && "opacity-50",
                                     )}
                                     draggable={!isProcessingMove && !isThisNoteDeleting} // Disable drag if move or deleting
                                     onDragStart={(e) => handleDragStart(e, "note", note.id)}
