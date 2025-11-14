@@ -3,7 +3,8 @@ FROM ubuntu:22.04
 
 # Install Node.js dan npm
 RUN apt-get update && apt-get install -y curl \
-    && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+    # MEMPERBAIKI: Mengganti Node.js 16.x dengan 20.x (LTS) untuk menyelesaikan masalah crypto.getRandomValues
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean
 
