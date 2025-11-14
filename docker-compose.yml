@@ -1,0 +1,7 @@
+services:
+  web:
+    build: .
+    ports:
+      - '3007:3007'
+    environment:
+      NODE_ENV: production
