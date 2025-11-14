@@ -1,27 +1,46 @@
-# Gunakan image Ubuntu sebagai base
-FROM ubuntu:22.04
+# =======================================================
+# TAHAP 1: BUILDER (Untuk menginstal dependensi dan membangun aset)
+# Kami menggunakan gambar Node.js yang lebih lengkap untuk tahap pembangunan.
+# =======================================================
+FROM node:20-slim AS builder
 
-# Install Node.js dan npm
-RUN apt-get update && apt-get install -y curl \
-    # MEMPERBAIKI: Mengganti Node.js 16.x dengan 20.x (LTS) untuk menyelesaikan masalah crypto.getRandomValues
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && apt-get clean
-
-# Set working directory
+# Tetapkan direktori kerja di dalam kontainer
 WORKDIR /app
 
-# Copy package.json dan package-lock.json ke dalam container
+# Salin file package.json dan package-lock.json (atau yarn.lock)
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Instal dependensi. Kami menggunakan --omit=dev untuk instalasi yang lebih bersih.
+RUN npm install --omit=dev
 
-# Copy semua file proyek ke dalam container
+# Salin sisa kode aplikasi
 COPY . .
 
-# Build aplikasi Next.js
-RUN npm run build
+# Jika Anda memiliki langkah build (misalnya, untuk React/Vue/Angular), tambahkan di sini:
+# RUN npm run build
 
-# Jalankan Next.js di mode production
-CMD ["npm", "run", "start"]
+# =======================================================
+# TAHAP 2: PRODUCTION (Untuk menjalankan aplikasi)
+# Kami menggunakan gambar dasar yang lebih kecil dan hanya menyertakan yang penting
+# untuk mengurangi ukuran gambar akhir (image size) dan meningkatkan keamanan.
+# =======================================================
+FROM node:20-slim AS production
+
+# Tetapkan variabel lingkungan untuk mode produksi
+ENV NODE_ENV production
+ENV PORT 8080
+
+# Tetapkan direktori kerja
+WORKDIR /usr/src/app
+
+# Salin HANYA folder node_modules dan file package.json/kode dari tahap builder
+# Ini menghindari penyalinan file build (seperti sumber daya pengembangan atau file mentah)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app .
+
+# Buka port yang akan didengarkan oleh aplikasi Anda
+EXPOSE 8080
+
+# Perintah untuk menjalankan aplikasi saat kontainer dimulai
+# Pastikan titik masuk (entry point) ini sesuai dengan file utama aplikasi Anda
+CMD ["node", "server.js"]
