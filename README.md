@@ -67,3 +67,72 @@ export default tseslint.config([
   },
 ])
 ```
+
+Deploy k8s
+
+```
+# 1. Build Image (beri nama tag :v1)
+docker build -t ai-notetaking-fe:v1 .
+
+# 2. Transfer Image dari Docker ke K3s
+docker save ai-notetaking-fe:v1 | sudo k3s ctr images import -
+```
+
+```
+nano fe-deploy.yaml
+```
+
+```
+# --- DEPLOYMENT ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-note-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-note-fe
+  template:
+    metadata:
+      labels:
+        app: ai-note-fe
+    spec:
+      containers:
+      - name: web
+        image: ai-notetaking-fe:v1  # Image yang baru kita build
+        imagePullPolicy: Never      # Pakai image lokal
+        ports:
+        - containerPort: 3000       # Port internal container (biasanya Nextjs/React/Node)
+        
+        # --- Bagian Environment Variable ---
+        env:
+        - name: NODE_ENV
+          value: "production"
+        # Jika frontend butuh URL Backend, biasanya ditambah di sini:
+        # - name: NEXT_PUBLIC_API_URL
+        #   value: "http://IP-SERVER-ANDA:30009" 
+
+---
+# --- SERVICE ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-note-fe-service
+spec:
+  type: NodePort
+  selector:
+    app: ai-note-fe
+  ports:
+    - port: 3000          # Port Cluster
+      targetPort: 3000    # Port Container
+      nodePort: 30008     # Port Akses Luar (Sesuai keinginan Anda: 3008)
+```
+
+```
+k apply -f fe-deploy.yaml
+```
+
+```
+k get pods
+```
